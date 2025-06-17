@@ -1,0 +1,103 @@
+@page "/create-user"
+@using MinimalFrontend.Models
+@inject HttpClient Http
+
+<h3>Create New User</h3>
+
+<!-- Form for creating a new user -->
+<EditForm Model="newUser" OnValidSubmit="SaveUser">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>First Name:</label><br />
+        <InputText @bind-Value="newUser.FirstName" class="form-control" />
+    </div>
+
+    <div>
+        <label>Last Name:</label><br />
+        <InputText @bind-Value="newUser.LastName" class="form-control" />
+    </div>
+
+    <div>
+        <label>Email:</label><br />
+        <InputText @bind-Value="newUser.Email" class="form-control" />
+    </div>
+
+    <div>
+        <label>Phone:</label><br />
+        <InputText @bind-Value="newUser.Phone" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-2">Save</button>
+</EditForm>
+
+<!-- Show a red error or info message -->
+@if (!string.IsNullOrWhiteSpace(duplicateMessage))
+{
+    <div class="alert alert-warning mt-3">@duplicateMessage</div>
+}
+
+<!-- Show a green success message -->
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <div class="alert alert-success mt-3">@successMessage</div>
+}
+
+@code {
+    // The user being created
+    User newUser = new();
+
+    // List of existing users for duplicate checking
+    List<User> existingUsers = new();
+
+    // Message for feedback
+    string? duplicateMessage;
+    string? successMessage;
+
+    // Load all users when the page loads
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            existingUsers = await Http.GetFromJsonAsync<List<User>>("api/user");
+        }
+        catch
+        {
+            duplicateMessage = "Could not load existing users.";
+        }
+    }
+
+    // Handle form submission
+    async Task SaveUser()
+    {
+        // Reset messages
+        duplicateMessage = null;
+        successMessage = null;
+
+        // Check if user with this email already exists (client-side check)
+        if (existingUsers.Any(u => u.Email.Equals(newUser.Email, StringComparison.OrdinalIgnoreCase)))
+        {
+            duplicateMessage = "A user with this email already exists.";
+            return;
+        }
+
+        // Send POST request to the backend API
+        var response = await Http.PostAsJsonAsync("api/user", newUser);
+
+        if (response.IsSuccessStatusCode)
+        {
+            successMessage = "User saved successfully!";
+            existingUsers.Add(newUser); // Add to local list
+            newUser = new(); // Reset form
+        }
+        else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            duplicateMessage = "This email is already taken (checked by API).";
+        }
+        else
+        {
+            duplicateMessage = "Something went wrong while saving the user.";
+        }
+    }
+}

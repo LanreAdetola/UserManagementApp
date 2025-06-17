@@ -35,6 +35,16 @@ namespace MinimalApi.Controllers
                 return BadRequest(ModelState); // Return validation errors
             }
 
+            // ✅ Check if a user with the same email already exists (case-insensitive)
+            bool emailExists = await _context.Users
+                .AnyAsync(u => u.Email.ToLower() == newUser.Email.ToLower());
+
+            if (emailExists)
+            {
+                // Return a 409 Conflict response if email already exists
+                return Conflict("A user with this email already exists.");
+            }
+
 
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
