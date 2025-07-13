@@ -1,0 +1,59 @@
+@using Microsoft.AspNetCore.Components.Forms
+
+@page "/edit-user/{Id:int}"
+@using MinimalFrontend.Models
+@inject HttpClient       Http
+@inject NavigationManager Nav
+
+<h3>Edit User</h3>
+
+@if (user is null)
+{
+    <p><em>Loading…</em></p>
+}
+else
+{
+    <EditForm Model="user" OnValidSubmit="Save">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-2">
+            <label>First Name</label>
+            <InputText @bind-Value="user.FirstName" class="form-control" />
+        </div>
+
+        <div class="mb-2">
+            <label>Last Name</label>
+            <InputText @bind-Value="user.LastName" class="form-control" />
+        </div>
+
+        <div class="mb-2">
+            <label>Email</label>
+            <InputText @bind-Value="user.Email" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label>Phone</label>
+            <InputText @bind-Value="user.Phone" class="form-control" />
+        </div>
+
+        <button class="btn btn-primary" type="submit">💾 Save</button>
+        <button class="btn btn-secondary ms-2" @onclick="NavigateBack">Cancel</button>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    User? user;
+
+    protected override async Task OnInitializedAsync()
+        => user = await Http.GetFromJsonAsync<User>($"api/user/{Id}");
+
+    async Task Save()
+    {
+        var resp = await Http.PutAsJsonAsync($"api/user/{Id}", user);
+        if (resp.IsSuccessStatusCode) NavigateBack();
+    }
+
+    void NavigateBack() => Nav.NavigateTo("/user-list");
+}
