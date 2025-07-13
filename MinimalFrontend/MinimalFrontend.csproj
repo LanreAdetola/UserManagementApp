@@ -7,8 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.16" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly"            Version="8.0.16" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.16" PrivateAssets="all" />
+
+    <!-- This one brings in EditForm/InputText/etc. -->
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.16" />
   </ItemGroup>
 
 </Project>

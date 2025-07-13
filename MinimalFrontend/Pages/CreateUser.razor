@@ -1,3 +1,4 @@
+@using Microsoft.AspNetCore.Components.Forms
 @page "/create-user"
 @using MinimalFrontend.Models
 @inject HttpClient Http
@@ -9,24 +10,28 @@
     <DataAnnotationsValidator />
     <ValidationSummary />
 
-    <div>
+    <div class="mb-2">
         <label>First Name:</label><br />
         <InputText @bind-Value="newUser.FirstName" class="form-control" />
+        <ValidationMessage For="() => newUser.FirstName" />
     </div>
 
-    <div>
+    <div class="mb-2">
         <label>Last Name:</label><br />
         <InputText @bind-Value="newUser.LastName" class="form-control" />
+        <ValidationMessage For="() => newUser.LastName" />
     </div>
 
-    <div>
+    <div class="mb-2">
         <label>Email:</label><br />
         <InputText @bind-Value="newUser.Email" class="form-control" />
+        <ValidationMessage For="() => newUser.Email" />
     </div>
 
-    <div>
+    <div class="mb-2">
         <label>Phone:</label><br />
         <InputText @bind-Value="newUser.Phone" class="form-control" />
+        <ValidationMessage For="() => newUser.Phone" />
     </div>
 
     <button type="submit" class="btn btn-primary mt-2">Save</button>
@@ -60,7 +65,7 @@
     {
         try
         {
-            existingUsers = await Http.GetFromJsonAsync<List<User>>("api/user");
+            existingUsers = await Http.GetFromJsonAsync<List<User>>("api/user") ?? new List<User>();
         }
         catch
         {
@@ -76,7 +81,7 @@
         successMessage = null;
 
         // Check if user with this email already exists (client-side check)
-        if (existingUsers.Any(u => u.Email.Equals(newUser.Email, StringComparison.OrdinalIgnoreCase)))
+        if (existingUsers.Any(u => (u.Email ?? "").Equals(newUser.Email, StringComparison.OrdinalIgnoreCase)))
         {
             duplicateMessage = "A user with this email already exists.";
             return;

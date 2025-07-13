@@ -2,8 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MinimalApi.Data;
-using MinimalApi.Models; 
-
+using MinimalApi.Models;
 
 namespace MinimalApi.Controllers
 {
@@ -11,91 +10,74 @@ namespace MinimalApi.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-       private readonly AppDbContext _context;
+        private readonly AppDbContext _context;
+        public UserController(AppDbContext context) => _context = context;
 
-        public UserController(AppDbContext context)
-        {
-            _context = context;
-        }
-
-
+        // ──────────────────────────────── READ ALL
         // GET: api/user
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetAllUsers()
+        public async Task<ActionResult<IEnumerable<User>>> GetAll()
+            => await _context.Users.AsNoTracking().ToListAsync();
+
+        // ──────────────────────────────── READ ONE
+        // GET: api/user/5
+        [HttpGet("{id:int}", Name = "GetUserById")]
+        public async Task<ActionResult<User>> GetById(int id)
         {
-            return await _context.Users.ToListAsync();
+            var user = await _context.Users.FindAsync(id);
+            return user is null ? NotFound() : Ok(user);
         }
 
+        // ──────────────────────────────── CREATE
         // POST: api/user
         [HttpPost]
-        public async Task<ActionResult<User>> CreateUser([FromBody] User newUser)
+        public async Task<ActionResult<User>> Create(User newUser)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState); // Return validation errors
-            }
+            if (!ModelState.IsValid)              return BadRequest(ModelState);
 
-            // ✅ Check if a user with the same email already exists (case-insensitive)
             bool emailExists = await _context.Users
-                .AnyAsync(u => u.Email.ToLower() == newUser.Email.ToLower());
-
-            if (emailExists)
-            {
-                // Return a 409 Conflict response if email already exists
-                return Conflict("A user with this email already exists.");
-            }
-
+                .AnyAsync(u => u.Email!.ToLower() == newUser.Email!.ToLower());
+            if (emailExists)                      return Conflict("Email already exists.");
 
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
 
-            
-            return CreatedAtAction(nameof(GetAllUsers), new { id = newUser.Id }, newUser);
+            // Point to GetById so Location header is correct
+            return CreatedAtRoute("GetUserById", new { id = newUser.Id }, newUser);
         }
 
-        // ✅ UPDATE user
-        [HttpPut("{id}")]
-        public async Task<ActionResult<User>> UpdateUser(int id, [FromBody] User updatedUser)
+        // ──────────────────────────────── UPDATE (full)
+        // PUT: api/user/5
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> Update(int id, User updated)
         {
+            if (!ModelState.IsValid)              return BadRequest(ModelState);
+            if (id != updated.Id)                 return BadRequest("ID mismatch.");
 
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState); // Return 400 with validation errors
-            }
+            var existing = await _context.Users.FindAsync(id);
+            if (existing is null)                 return NotFound();
 
-
-            var user = await _context.Users.FindAsync(id);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            user.FirstName = updatedUser.FirstName;
-            user.LastName = updatedUser.LastName;
-            user.Email = updatedUser.Email;
-            user.Phone = updatedUser.Phone;
+            // simple field-by-field update
+            existing.FirstName = updated.FirstName;
+            existing.LastName  = updated.LastName;
+            existing.Email     = updated.Email;
+            existing.Phone     = updated.Phone;
 
             await _context.SaveChangesAsync();
-
-            return Ok(user);
+            return NoContent();                    // 204 – standard for PUT success
         }
 
-        // ❌ DELETE user
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(int id)
+        // ──────────────────────────────── DELETE
+        // DELETE: api/user/5
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
         {
             var user = await _context.Users.FindAsync(id);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
+            if (user is null)                     return NotFound();
 
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
-
-            return NoContent(); // 204 No Content
+            return NoContent();
         }
     }
 }
